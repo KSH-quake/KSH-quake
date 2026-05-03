@@ -68,10 +68,31 @@
         .source-link { display: inline-block; padding: 6px 12px; background: #333; color: var(--accent); text-decoration: none; border-radius: 4px; font-size: 0.8rem; font-weight: bold; transition: 0.2s; }
         .source-link:hover { background: var(--accent); color: #000; }
 
-        .filter-container { display: flex; flex-wrap: wrap; gap: 6px; padding: 15px 15px 0 15px; flex-shrink: 0; }
+        /* 모드 변경(필터) 드롭다운 메뉴 스타일 */
+        .dropdown-menu { margin: 15px 15px 0 15px; position: relative; z-index: 1002; flex-shrink: 0; }
+        .dropdown-header {
+            background: #222; color: #fff; padding: 10px 15px; border-radius: 8px;
+            cursor: pointer; border: 1px solid #444; display: flex; justify-content: space-between;
+            font-size: 0.85rem; font-weight: bold; transition: background 0.3s;
+        }
+        .dropdown-header:hover { background: #333; }
+        .dropdown-content {
+            display: none; position: absolute; top: 100%; left: 0; right: 0;
+            background: #1a1a1a; border: 1px solid #444; border-radius: 8px;
+            padding: 10px; flex-wrap: wrap; gap: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+            margin-top: 0px; /* 틈새 제거 */
+            z-index: 1003;
+        }
+        /* 호버 시 메뉴 표시 및 마우스 이탈 방지용 가상의 다리(Bridge) 추가 */
+        .dropdown-menu:hover .dropdown-content { display: flex; }
+        .dropdown-content::before {
+            content: ""; position: absolute; top: -15px; left: 0; right: 0; height: 15px; background: transparent;
+        }
+        
         .filter-btn {
             background: #222; color: #aaa; border: 1px solid #444; padding: 6px 12px;
             border-radius: 6px; font-size: 0.8rem; cursor: pointer; transition: all 0.2s;
+            flex-grow: 1; text-align: center;
         }
         .filter-btn:hover { background: #333; color: #fff; }
         .filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: bold; }
@@ -95,7 +116,7 @@
         .src-emsc { color: #feca57; background: rgba(254, 202, 87, 0.15); }
         .src-usgs { color: #48dbfb; background: rgba(72, 219, 251, 0.15); }
         .src-ingv { color: #f8a5c2; background: rgba(248, 165, 194, 0.15); }
-        .src-ga { color: #e056fd; background: rgba(224, 86, 253, 0.15); }
+        .src-usp { color: #00b894; background: rgba(0, 184, 148, 0.15); } /* USP 추가 */
         .src-geonet { color: #82ccdd; background: rgba(130, 204, 221, 0.15); }
         .src-주의 { color: #ff5d5d; background: rgba(255, 93, 93, 0.15); }
         
@@ -198,16 +219,19 @@
                 <div class="eew-title none">발표된 EEW 없음</div>
             </div>
 
-            <div class="filter-container">
-                <button class="filter-btn active" data-filter="all">통합(최근 500개)</button>
-                <button class="filter-btn" data-filter="korea">🇰🇷 한국(KMA)</button>
-                <button class="filter-btn" data-filter="japan">🇯🇵 일본(JMA)</button>
-                <button class="filter-btn" data-filter="emsc">🇪🇺 유럽(EMSC)</button>
-                <button class="filter-btn" data-filter="usgs">🇺🇸 미국(USGS)</button>
-                <button class="filter-btn" data-filter="ingv">🇮🇹 이탈리아(INGV)</button>
-                <button class="filter-btn" data-filter="ga">🇦🇺 호주(GA)</button>
-                <button class="filter-btn" data-filter="geonet">🇳🇿 뉴질랜드(GEONET)</button>
+            <div class="dropdown-menu">
+                <div class="dropdown-header" id="current-filter-label">🌍 필터 모드 변경: 통합(최근 500개) <span style="font-size: 0.7rem;">▼</span></div>
+                <div class="dropdown-content">
+                    <button class="filter-btn active" data-filter="all">통합(최근 500개)</button>
+                    <button class="filter-btn" data-filter="korea">🇰🇷 한국(KMA)</button>
+                    <button class="filter-btn" data-filter="japan">🇯🇵 일본(JMA)</button>
+                    <button class="filter-btn" data-filter="emsc">🇪🇺 유럽(EMSC)</button>
+                    <button class="filter-btn" data-filter="usgs">🇺🇸 미국(USGS)</button>
+                    <button class="filter-btn" data-filter="ingv">🇮🇹 이탈리아(INGV)</button>
+                    <button class="filter-btn" data-filter="usp">🇧🇷 브라질(USP)</button> <button class="filter-btn" data-filter="geonet">🇳🇿 뉴질랜드(GEONET)</button>
+                </div>
             </div>
+
             <div id="history-list"></div>
         </div>
 
@@ -228,12 +252,12 @@
             </div>
             <div class="source-card">
                 <h3><span class="eq-source src-kma">KMA</span> 대한민국 기상청</h3>
-                <p>한반도 및 인근 해역의 지진 관측 데이터를 제공합니다. 기상청 과거지진 검색 페이지를 연동하여 정보를 수집합니다.</p>
+                <p>한반도 및 인근 해역의 지진 관측 데이터를 제공합니다.</p>
                 <a href="https://www.weather.go.kr/w/earthquake-volcano/search/korea.do" target="_blank" class="source-link">공식 홈페이지 방문</a>
             </div>
             <div class="source-card">
                 <h3><span class="eq-source src-jma">JMA</span> 일본 기상청</h3>
-                <p>일본 전역의 지진 정보를 제공합니다. P2PQuake API를 활용해 실시간 데이터를 수집합니다.</p>
+                <p>일본 전역의 지진 정보를 제공합니다.</p>
                 <a href="https://www.jma.go.jp/jma/index.html" target="_blank" class="source-link">공식 홈페이지 방문</a>
             </div>
             <div class="source-card">
@@ -252,9 +276,9 @@
                 <a href="https://webservices.ingv.it/" target="_blank" class="source-link">공식 홈페이지 방문</a>
             </div>
             <div class="source-card">
-                <h3><span class="eq-source src-ga">GA</span> 호주 지구과학청</h3>
-                <p>호주 대륙 및 오세아니아 지역의 광범위한 지진 관측망 데이터를 제공합니다.</p>
-                <a href="https://earthquakes.ga.gov.au/" target="_blank" class="source-link">공식 홈페이지 방문</a>
+                <h3><span class="eq-source src-usp">USP</span> 상파울루 대학교(브라질)</h3>
+                <p>브라질 지진 네트워크(RSBR) 및 남아메리카 지역 지진 데이터를 제공합니다.</p>
+                <a href="http://sismologia.iag.usp.br/" target="_blank" class="source-link">공식 홈페이지 방문</a>
             </div>
             <div class="source-card">
                 <h3><span class="eq-source src-geonet">GeoNet</span> 뉴질랜드 관측망</h3>
@@ -330,7 +354,7 @@
         japan: { center: [36.0, 138.0], zoom: 5 },
         usgs: { center: [38.0, -97.0], zoom: 4 },
         ingv: { center: [41.9, 12.5], zoom: 5 },
-        ga: { center: [-25.0, 135.0], zoom: 4 },
+        usp: { center: [-14.0, -51.0], zoom: 4 }, // 브라질 USP 바운드 추가
         geonet: { center: [-41.0, 174.0], zoom: 5 }
     };
 
@@ -394,6 +418,7 @@
             "china": "중국", "russia": "러시아", "philippines": "필리핀", "indonesia": "인도네시아", "united states": "미국", 
             "alaska": "알래스카", "hawaii": "하와이", "california": "캘리포니아", "texas": "텍사스", "nevada": "네바다",
             "chile": "칠레", "mexico": "멕시코", "peru": "페루", "argentina": "아르헨티나", "colombia": "콜롬비아",
+            "brazil": "브라질", "sao paulo": "상파울루",
             "new zealand": "뉴질랜드", "australia": "호주", "papua new guinea": "파푸아뉴기니", "fiji": "피지", "vanuatu": "바누아투",
             "turkey": "튀르키예", "greece": "그리스", "italy": "이탈리아", "france": "프랑스", "spain": "스페인", "iran": "이란",
             "india": "인도", "pakistan": "파키스탄", "afghanistan": "아프가니스탄", "nepal": "네팔", "myanmar": "미얀마",
@@ -498,6 +523,8 @@
         
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
         L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        map.on('zoomend', updateKyoshinMarkerSize);
     }
 
     function activateEarthquake(eq, itemElement) {
@@ -700,6 +727,20 @@
         'x': '#F60500', 'y': '#CD0000', 'z': '#B20000'  
     };
 
+    function updateKyoshinMarkerSize() {
+        if (!isKyoshinEnabled || !isKyoshinLoaded) return;
+        const zoom = map.getZoom();
+        
+        // 이전보다 조금 더 작게 (기본 1.0 최소값, 비율 완만화)
+        let dynamicRadius = Math.max(1.0, (zoom * 0.8) - 1.5);
+        
+        kyoshinMarkers.forEach(markersForPoint => {
+            markersForPoint.forEach(marker => {
+                marker.setRadius(dynamicRadius);
+            });
+        });
+    }
+
     async function loadKyoshinData() {
         try {
             const response = await fetch('ddd.json');
@@ -709,7 +750,6 @@
             data.items.forEach(coord => {
                 const markersForPoint = [];
                 
-                // 지도 3개 분량(-360도, 0도, +360도)에 마커 생성
                 [-360, 0, 360].forEach(offset => {
                     const marker = L.circleMarker([coord[0], coord[1] + offset], {
                         radius: 3,         
@@ -726,6 +766,7 @@
                 kyoshinMarkers.push(markersForPoint); 
             });
             isKyoshinLoaded = true;
+            updateKyoshinMarkerSize(); 
             fetchRealTimeKyoshin(); 
         } catch (error) {
             console.error(error);
@@ -761,7 +802,6 @@
                     const char = intensityStr[i];
                     const pickedColor = kyoshinColorMap[char] || "transparent";
 
-                    // 배열 안의 3개 마커 색상을 모두 업데이트
                     kyoshinMarkers[i].forEach(marker => {
                         marker.setStyle({ fillColor: pickedColor });
                     });
@@ -782,6 +822,7 @@
             if (!isKyoshinLoaded) {
                 loadKyoshinData();
             } else {
+                updateKyoshinMarkerSize();
                 fetchRealTimeKyoshin();
             }
             kyoshinIntervalId = setInterval(fetchRealTimeKyoshin, 2000); 
@@ -803,6 +844,14 @@
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             e.target.classList.add('active');
             currentFilter = e.target.getAttribute('data-filter');
+            
+            document.getElementById('current-filter-label').innerHTML = `🌍 필터 모드 변경: ${e.target.innerText} <span style="font-size: 0.7rem;">▼</span>`;
+            
+            // 클릭 시 드롭다운 닫기 효과 (클릭하면 바로 숨겨졌다가 복구됨)
+            const dropdownContent = document.querySelector('.dropdown-content');
+            dropdownContent.style.display = 'none';
+            setTimeout(() => dropdownContent.style.display = '', 100);
+
             lastLatestEqId = null; 
             
             if(bounds[currentFilter]) {
@@ -943,12 +992,13 @@
     }
 
     async function fetchINGV() {
-        return fetchFDSNWS(`https://webservices.ingv.it/fdsnws/event/1/query?format=geojson&limit=500&orderby=time`, 'INGV', '이탈리아 인근');
+        return fetchFDSNWS(`https://webservices.ingv.it/fdsnws/event/1/query?format=geojson&limit=100&orderby=time`, 'INGV', '이탈리아 인근');
     }
 
-    async function fetchGA() {
+    // 독일(GFZ)을 제외하고 브라질(USP) 추가 
+    async function fetchUSP() {
         const startDate = getHistoryLimitDateString(14);
-        return fetchFDSNWS(`https://earthquakes.ga.gov.au/fdsnws/event/1/query?format=geojson&starttime=${startDate}&limit=200&orderby=time`, 'GA', '호주/오세아니아 인근');
+        return fetchFDSNWS(`https://moho.iag.usp.br/fdsnws/event/1/query?format=geojson&starttime=${startDate}&limit=100&orderby=time`, 'USP', '브라질 인근');
     }
 
     async function fetchGeoNet() {
@@ -968,10 +1018,11 @@
         const statusEl = document.getElementById('conn-status');
         
         try {
-            const [jma, emsc, usgs, kma, ingv, ga, geonet] = await Promise.all([
-                fetchJMA(), fetchEMSC(), fetchUSGS(), fetchKMA(), fetchINGV(), fetchGA(), fetchGeoNet()
+            // fetchGFZ를 fetchUSP로 교체
+            const [jma, emsc, usgs, kma, ingv, usp, geonet] = await Promise.all([
+                fetchJMA(), fetchEMSC(), fetchUSGS(), fetchKMA(), fetchINGV(), fetchUSP(), fetchGeoNet()
             ]);
-            let rawData = [...jma, ...emsc, ...usgs, ...kma, ...ingv, ...ga, ...geonet];
+            let rawData = [...jma, ...emsc, ...usgs, ...kma, ...ingv, ...usp, ...geonet];
 
             const limitDate = getHistoryLimitDateString(14);
             const limitTime = new Date(limitDate).getTime();
@@ -995,7 +1046,8 @@
                     if (currentFilter === 'all') {
                         isCurrentFilterMatch = true;
                     } else {
-                        const srcMap = { 'korea':'KMA', 'japan':'JMA', 'emsc':'EMSC', 'usgs':'USGS', 'ingv':'INGV', 'ga':'GA', 'geonet':'GEONET' };
+                        // gfz 매핑을 usp로 교체
+                        const srcMap = { 'korea':'KMA', 'japan':'JMA', 'emsc':'EMSC', 'usgs':'USGS', 'ingv':'INGV', 'usp':'USP', 'geonet':'GEONET' };
                         isCurrentFilterMatch = newEq.sources.includes(srcMap[currentFilter]);
                     }
 
@@ -1013,7 +1065,7 @@
 
             let displayData = mergedData;
             if (currentFilter !== 'all') {
-                const srcMap = { 'korea':'KMA', 'japan':'JMA', 'emsc':'EMSC', 'usgs':'USGS', 'ingv':'INGV', 'ga':'GA', 'geonet':'GEONET' };
+                const srcMap = { 'korea':'KMA', 'japan':'JMA', 'emsc':'EMSC', 'usgs':'USGS', 'ingv':'INGV', 'usp':'USP', 'geonet':'GEONET' };
                 displayData = displayData.filter(eq => eq.sources.includes(srcMap[currentFilter]));
             }
             displayData = displayData.slice(0, 500);

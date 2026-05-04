@@ -825,7 +825,7 @@
                 updateKyoshinMarkerSize();
                 fetchRealTimeKyoshin();
             }
-            kyoshinIntervalId = setInterval(fetchRealTimeKyoshin, 2000); 
+            kyoshinIntervalId = setInterval(fetchRealTimeKyoshin, 1000); 
         } else {
             this.innerText = '📡 지진계 꺼짐';
             this.style.color = '#888';

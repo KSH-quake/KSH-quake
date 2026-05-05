@@ -750,7 +750,7 @@
         'l': '#99FE16', 'm': '#C2FF0B', 'n': '#E9FF03', 
         'o': '#FCFF00', 'p': '#FFF000', 'q': '#FFE000', 
         'r': '#FFC700', 's': '#FFC700', 't': '#FFAA00', 
-        'u': '#FF6500', 'v': '#FF6500', 'w': '#FC3100', 
+        'u': '#FF6500', 'v': '#FC3100', 'w': '#FC3100', 
         'x': '#F60500', 'y': '#CD0000', 'z': '#B20000'  
     };
 
@@ -1232,13 +1232,6 @@
     fetchEEWData();
 </script>
 <script>
-    // 1. 대만 지진계 상태창 UI를 화면에 동적으로 추가
-    const ttsStatusBox = document.createElement('div');
-    ttsStatusBox.id = 'tts-status-box';
-    ttsStatusBox.style.cssText = 'position: absolute; bottom: 80px; left: 420px; z-index: 2000; background: rgba(30, 30, 30, 0.9); color: white; padding: 10px 15px; border-radius: 8px; display: none; font-size: 12px; border: 1px solid #444;';
-    ttsStatusBox.innerHTML = '<div style="font-weight: bold; margin-bottom: 3px;">🇹🇼 대만 실시간 모니터링</div><div id="tts-status-text">⏳ 대기 중...</div>';
-    document.getElementById('layout').appendChild(ttsStatusBox);
-
     // 2. 대만 지진계용 전역 변수 설정
     let ttsMarkers = {};
     let ttsLayerGroup = L.layerGroup();
@@ -1358,26 +1351,36 @@
                       
                       // 대만 전용 PGA 임계값 색상
                       let pickedColor = 'transparent';
-                      if (pga >= 0.001)  pickedColor = '#0006D2';
+                      if (pga >= 0.001)  pickedColor = '#0006D2';//0
                       if (pga >= 0.05)   pickedColor = '#0006D2';
                       if (pga >= 0.1)    pickedColor = '#0006D2';
                       if (pga >= 0.2)    pickedColor = '#0064E1';
                       if (pga >= 0.35)   pickedColor = '#00A4AD';
                       if (pga >= 0.5)    pickedColor = '#00C096';
                       if (pga >= 0.66)   pickedColor = '#99FE16';
-                      if (pga >= 0.8)    pickedColor = '#E9FF03';
+                      if (pga >= 0.8)    pickedColor = '#E9FF03';//1
                       if (pga >= 1.0)    pickedColor = '#FCFF00';
                       if (pga >= 1.5)    pickedColor = '#FFF000';
-                      if (pga >= 2.5)    pickedColor = '#FFE000';
-                      if (pga >= 4.0)    pickedColor = '#00A4AD';
-                      if (pga >= 6.0)    pickedColor = '#00A4AD';
-                      if (pga >= 8.0)    pickedColor = '#00A4AD';
-                      if (pga >= 11.0)   pickedColor = '#00A4AD';
-                      if (pga >= 18.0)   pickedColor = '#00A4AD';
-                      if (pga >= 25.0)   pickedColor = '#00A4AD';
-                      if (pga >= 40.0)   pickedColor = '#00A4AD';
-                      if (pga >= 75.0)   pickedColor = '#00A4AD';
-                      if (pga >= 80.0)   pickedColor = '#00A4AD';
+                      if (pga >= 2.5)    pickedColor = '#FFE000';//2
+                      if (pga >= 4.0)    pickedColor = '#ffd900';
+                      if (pga >= 6.0)    pickedColor = '#ffd900';
+                      if (pga >= 8.0)    pickedColor = '#ffa600';//3
+                      if (pga >= 11.0)   pickedColor = '#ff9900';
+                      if (pga >= 18.0)   pickedColor = '#ff9900';
+                      if (pga >= 25.0)   pickedColor = '#ff7300';//4
+                      if (pga >= 40.0)   pickedColor = '#ff7300';
+                      if (pga >= 75.0)   pickedColor = '#ff4800';
+                      if (pga >= 80.0)   pickedColor = '#FC3100';//5-
+                      if (pga >= 95.0)   pickedColor = '#FC3100';
+                      if (pga >= 120.0)   pickedColor = '#FC3100';
+                      if (pga >= 140.0)   pickedColor = '#F60500';//5+
+                      if (pga >= 180.0)   pickedColor = '#F60500';
+                      if (pga >= 200.0)   pickedColor = '#F60500';
+                      if (pga >= 250.0)   pickedColor = '#F60500';//6-
+                      if (pga >= 340.0)   pickedColor = '#CD0000';
+                      if (pga >= 440.0)   pickedColor = '#CD0000';//6+
+                      if (pga >= 600.0)   pickedColor = '#B20000';   
+                      if (pga >= 800.0)   pickedColor = '#B20000';//7
                       
                       ttsMarkers[station_id].forEach(marker => {
                           marker.setStyle({ fillColor: pickedColor });

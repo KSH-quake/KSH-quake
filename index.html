@@ -1232,6 +1232,14 @@
     fetchEEWData();
 </script>
 <script>
+
+     // 1. 대만 지진계 상태창 UI를 화면에 동적으로 추가
+    const ttsStatusBox = document.createElement('div');
+    ttsStatusBox.id = 'tts-status-box';
+    ttsStatusBox.style.cssText = 'position: absolute; bottom: 80px; left: 420px; z-index: 2000; background: rgba(30, 30, 30, 0.9); color: white; padding: 10px 15px; border-radius: 8px; display: none; font-size: 12px; border: 1px solid #444;';
+    ttsStatusBox.innerHTML = '<div style="font-weight: bold; margin-bottom: 3px;">🇹🇼 대만 실시간 모니터링</div><div id="tts-status-text">⏳ 대기 중...</div>';
+    document.getElementById('layout').appendChild(ttsStatusBox);
+    
     // 2. 대만 지진계용 전역 변수 설정
     let ttsMarkers = {};
     let ttsLayerGroup = L.layerGroup();

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KSH QUAKE</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div id="layout">
+    <div id="realtime-clock">
+        <div class="blink-dot"></div>
+        <span id="clock-text">00:00:00</span>
+        <button id="sound-toggle" style="background: rgba(0,0,0,0.5); border: 1px solid var(--border); color: #888; border-radius: 4px; padding: 2px 8px; cursor: pointer; margin-left: 10px; font-size: 0.8rem; font-weight: bold; transition: 0.2s;">🔕 알림 꺼짐</button>
+        <button id="marker-toggle" style="background: rgba(0,0,0,0.5); border: 1px solid var(--accent); color: var(--accent); border-radius: 4px; padding: 2px 8px; cursor: pointer; margin-left: 5px; font-size: 0.8rem; font-weight: bold; transition: 0.2s;">🔵 마커 켜짐</button>
+        <button id="kyoshin-toggle" style="background: rgba(0,0,0,0.5); border: 1px solid var(--border); color: #888; border-radius: 4px; padding: 2px 8px; cursor: pointer; margin-left: 5px; font-size: 0.8rem; font-weight: bold; transition: 0.2s;">📡 지진계 꺼짐</button>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <div id="sidebar">
+        <div class="header">
+            <h1>KSH QUAKE</h1>
+            <div class="source-info">
+                <span id="conn-status">로딩중...</span>
+            </div>
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('history')">실시간 목록</button>
+                <button class="tab-btn" onclick="switchTab('sources')">데이터 출처</button>
+            </div>
+        </div>
+
+        <div id="history-tab" class="content-area active">
+            <div id="eew-panel">
+                <div class="eew-title none">발표된 EEW 없음</div>
+            </div>
+
+            <div class="dropdown-menu">
+                <div class="dropdown-header" id="current-filter-label">🌍 필터 모드 변경: 통합(최근 500개) <span style="font-size: 0.7rem;">▼</span></div>
+                <div class="dropdown-content">
+                    <button class="filter-btn active" data-filter="all">통합(최근 500개)</button>
+                    <button class="filter-btn" data-filter="korea">🇰🇷 한국(KMA)</button>
+                    <button class="filter-btn" data-filter="japan">🇯🇵 일본(JMA)</button>
+                    <button class="filter-btn" data-filter="emsc">🇪🇺 유럽(EMSC)</button>
+                    <button class="filter-btn" data-filter="usgs">🇺🇸 미국(USGS)</button>
+                    <button class="filter-btn" data-filter="ingv">🇮🇹 이탈리아(INGV)</button>
+                    <button class="filter-btn" data-filter="usp">🇧🇷 브라질(USP)</button>
+                    <button class="filter-btn" data-filter="geonet">🇳🇿 뉴질랜드(GEONET)</button>
+                    <button class="filter-btn" data-filter="gfz">🇩🇪 독일(GFZ)</button>
+                    <button class="filter-btn" data-filter="ga">🇦🇺 호주(GA)</button>
+                    <button class="filter-btn" data-filter="bgs">🇬🇧 영국(BGS)</button>
+                </div>
+            </div>
+
+            <div id="history-list"></div>
+        </div>
+
+        <div id="sources-tab" class="content-area">
+            <div class="source-card">
+                <h3><span class="eq-source src-주의">주의</span>주의</h3>
+                <p>KSH QUAKE는 각 정부 기관과 기상청을 대표하지 않습니다.</p>
+                <p>KSH QUAKE는 민간 프로젝트이며 수집한 정보를 전달합니다.</p>
+                <p>본 저작물은 '기상청(KMA)'에서 공공누리 제2유형으로 개방한 날씨누리(KMA)을 이용하였으며, 해당 저작물은 '날씨누리(KMA)'에서 무료로 확인하실 수 있습니다.</p>
+            </div>
+            <div class="source-card">
+                <h3><span class="eq-source src-jma">Wolfx</span> 긴급지진속보(EEW)</h3>
+                <p>일본, 대만, 중국의 긴급지진속보를 실시간으로 모니터링하여 지도에 예상되는 P파 및 S파 도달 범위를 시각화합니다.</p>
+            </div>
+            <div class="source-card">
+                <h3><span class="eq-source src-jma">Yahoo</span> 실시간 지진계(Kyoshin)</h3>
+                <p>일본 전역의 관측소 데이터를 실시간으로 수신하여 지도상에 표출합니다.</p>
+            </div>
+            <div class="source-card">
+                <h3><span class="eq-source src-kma">KMA</span> 대한민국 기상청</h3>
+                <p>한반도 및 인근 해역의 지진 관측 데이터를 제공합니다.</p>
+                <a href="https://www.weather.go.kr/w/earthquake-volcano/search/korea.do" target="_blank" class="source-link">공식 홈페이지 방문</a>
+            </div>
+            <div class="source-card">
+                <h3><span class="eq-source src-jma">JMA</span> 일본 기상청</h3>
+                <p>일본 전역의 지진 정보를 제공합니다.</p>
+                <a href="https://www.jma.go.jp/jma/index.html" target="_blank" class="source-link">공식 홈페이지 방문</a>
+            </div>
+            <div class="source-card">
+                <h3><span class="eq-source src-emsc">EMSC</span> 유럽지중해지진센터</h3>
+                <p>전 세계 관측망을 통합하여 가장 빠른 실시간 지진 속보를 제공합니다.</p>
+                <a href="https://www.seismicportal.eu/" target="_blank" class="source-link">공식 홈페이지 방문</a>
+            </div>
+            <div class="source-card">
+                <h3><span class="eq-source src-usgs">USGS</span> 미국 지질조사국</h3>
+                <p>글로벌 주요 지진 관측(특히 규모 4.5 이상) 데이터를 제공합니다.</p>
+                <a href="https://earthquake.usgs.gov/" target="_blank" class="source-link">공식 홈페이지 방문</a>
+            </div>
+            <div class="source-card">
+                <h3><span class="eq-source src-ingv">INGV</span> 이탈리아 국립 연구소</h3>
+                <p>이탈리아 및 지중해 지역의 정밀한 지진 데이터를 제공합니다.</p>
+                <a href="https://webservices.ingv.it/" target="_blank" class="source-link">공식 홈페이지 방문</a>
+            </div>
+            <div class="source-card">
+                <h3><span class="eq-source src-usp">USP</span> 상파울루 대학교(브라질)</h3>
+                <p>브라질 지진 네트워크(RSBR) 및 남아메리카 지역 지진 데이터를 제공합니다.</p>
+                <a href="http://sismologia.iag.usp.br/" target="_blank" class="source-link">공식 홈페이지 방문</a>
+            </div>
+            <div class="source-card">
+                <h3><span class="eq-source src-geonet">GeoNet</span> 뉴질랜드 관측망</h3>
+                <p>뉴질랜드 전역의 지진 및 화산 활동을 실시간으로 감시합니다.</p>
+                <a href="https://www.geonet.org.nz/" target="_blank" class="source-link">공식 홈페이지 방문</a>
+            </div>
+            <div class="source-card">
+                <h3><span class="eq-source src-gfz">GFZ</span> 독일 지구과학연구센터</h3>
+                <p>GEOFON 관측망을 통해 전 세계 지진 이벤트를 제공합니다.</p>
+                <a href="https://geofon.gfz-potsdam.de/" target="_blank" class="source-link">공식 홈페이지 방문</a>
+            </div>
+            <div class="source-card">
+                <h3><span class="eq-source src-ga">GA</span> Geoscience Australia</h3>
+                <p>호주 및 주변 지역의 최근 지진 정보를 제공합니다.</p>
+                <a href="https://earthquakes.ga.gov.au/" target="_blank" class="source-link">공식 홈페이지 방문</a>
+            </div>
+            <div class="source-card">
+                <h3><span class="eq-source src-bgs">BGS</span> 영국 지질조사소</h3>
+                <p>영국 및 인근 지역의 최근 지진 정보를 GeoRSS로 제공합니다.</p>
+                <a href="https://earthquakes.bgs.ac.uk/" target="_blank" class="source-link">공식 홈페이지 방문</a>
+            </div>
+            <div style="font-size:0.75rem; color:#666; text-align:center; padding:10px 0 20px 0;">
+                본 시스템은 각 기관의 공개 API를 활용하며,<br>관측 기관의 사정에 따라 업데이트가 지연될 수 있습니다.
+            </div>
+        </div>
+    </div>
+    <div id="map"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="js/constants.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/map.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/api.js"></script>
+<script src="js/eew.js"></script>
+<script src="js/kyoshin.js"></script>
+<script src="js/main.js"></script>
+<script src="js/tw.js"></script>
+</body>
+</html>

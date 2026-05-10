@@ -180,10 +180,10 @@
         
         try {
             // 여러 기관의 최신 지진 데이터를 병렬 수신
-            const [jma, emsc, usgs, kma, ingv, usp, geonet, gfz, ga, bgs] = await Promise.all([
-                fetchJMA(), fetchEMSC(), fetchUSGS(), fetchKMA(), fetchINGV(), fetchUSP(), fetchGeoNet(), fetchGFZ(), fetchGA(), fetchBGS()
+            const [jma, emsc, usgs, kma, ingv, usp, geonet, gfz, ga, bgs, phivolcs] = await Promise.all([
+                fetchJMA(), fetchEMSC(), fetchUSGS(), fetchKMA(), fetchINGV(), fetchUSP(), fetchGeoNet(), fetchGFZ(), fetchGA(), fetchBGS(), fetchPHIVOLCS()
             ]);
-            let rawData = [...jma, ...emsc, ...usgs, ...kma, ...ingv, ...usp, ...geonet, ...gfz, ...ga, ...bgs];
+            let rawData = [...jma, ...emsc, ...usgs, ...kma, ...ingv, ...usp, ...geonet, ...gfz, ...ga, ...bgs, ...phivolcs];
 
             const limitDate = getHistoryLimitDateString(14);
             const limitTime = new Date(limitDate).getTime();
@@ -208,7 +208,7 @@
                         isCurrentFilterMatch = true;
                     } else {
                         // 현재 선택한 기관 필터와 새 지진의 출처 비교
-                        const srcMap = { 'korea':'KMA', 'japan':'JMA', 'emsc':'EMSC', 'usgs':'USGS', 'ingv':'INGV', 'usp':'USP', 'geonet':'GEONET', 'gfz':'GFZ', 'ga':'GA', 'bgs':'BGS' };
+                        const srcMap = { 'korea':'KMA', 'japan':'JMA', 'emsc':'EMSC', 'usgs':'USGS', 'ingv':'INGV', 'usp':'USP', 'geonet':'GEONET', 'gfz':'GFZ', 'ga':'GA', 'bgs':'BGS', 'phivolcs':'PHIVOLCS' };
                         isCurrentFilterMatch = newEq.sources.includes(srcMap[currentFilter]);
                     }
 
@@ -226,7 +226,7 @@
 
             let displayData = mergedData;
             if (currentFilter !== 'all') {
-                const srcMap = { 'korea':'KMA', 'japan':'JMA', 'emsc':'EMSC', 'usgs':'USGS', 'ingv':'INGV', 'usp':'USP', 'geonet':'GEONET', 'gfz':'GFZ', 'ga':'GA', 'bgs':'BGS' };
+                const srcMap = { 'korea':'KMA', 'japan':'JMA', 'emsc':'EMSC', 'usgs':'USGS', 'ingv':'INGV', 'usp':'USP', 'geonet':'GEONET', 'gfz':'GFZ', 'ga':'GA', 'bgs':'BGS', 'phivolcs':'PHIVOLCS' };
                 displayData = displayData.filter(eq => eq.sources.includes(srcMap[currentFilter]));
             }
             displayData = displayData.slice(0, 500);
@@ -266,6 +266,182 @@
                 };
             });
         } catch { return []; }
+    }
+
+    function parsePHIVOLCSDisplayTimePhST(display) {
+        const s = display
+            .replace(/\uFEFF/g, "")
+            .replace(/[\u00A0\u2007\u202F]/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+        const re = /^(\d{1,2})\s+(\w+)\s+(\d{4})\s*[\-–]\s*(\d{1,2}):(\d{2})\s*(AM|PM)$/i;
+        const m = s.match(re);
+        if (!m) return null;
+        const day = parseInt(m[1], 10);
+        const monKey = m[2].toLowerCase().replace(/\.$/, "");
+        const year = parseInt(m[3], 10);
+        let hour = parseInt(m[4], 10);
+        const minute = parseInt(m[5], 10);
+        const isPm = m[6].toUpperCase() === "PM";
+        const MONTHS = {
+            jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2, apr: 3, april: 3,
+            may: 4, jun: 5, june: 5, jul: 6, july: 6, aug: 7, august: 7, sep: 8, sept: 8, september: 8,
+            oct: 9, october: 9, nov: 10, november: 10, dec: 11, december: 11
+        };
+        const month = MONTHS[monKey];
+        if (month === undefined) return null;
+        if (isPm && hour < 12) hour += 12;
+        if (!isPm && hour === 12) hour = 0;
+        return new Date(Date.UTC(year, month, day, hour - 8, minute, 0));
+    }
+
+    async function decodeMaybeGzipHtml(buf) {
+        const u8 = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+        if (u8.length >= 2 && u8[0] === 0x1f && u8[1] === 0x8b) {
+            try {
+                if (typeof DecompressionStream !== "undefined") {
+                    const blob = new Blob([u8]);
+                    const ds = new DecompressionStream("gzip");
+                    const decompressed = await new Response(blob.stream().pipeThrough(ds)).arrayBuffer();
+                    return new TextDecoder("utf-8", { fatal: false }).decode(new Uint8Array(decompressed));
+                }
+            } catch (_) { /* fall through */ }
+        }
+        return new TextDecoder("utf-8", { fatal: false }).decode(u8);
+    }
+
+    function extractIframeEarthquakeUrlFromWP(html) {
+        const m = html.match(/<iframe[^>]+src\s*=\s*["']([^"']*earthquake\.phivolcs[^"']*)["']/i);
+        if (!m) return "";
+        let src = m[1].trim();
+        if (src.startsWith("//")) src = "https:" + src;
+        if (!src.startsWith("http"))
+            src = "https://www.phivolcs.dost.gov.ph" + (src.startsWith("/") ? src : "/" + src);
+        return src.split("#")[0];
+    }
+
+    async function fetchTextPHIVOLCSAny(url) {
+        const hdrs = new Headers({
+            Accept: "text/html,application/xhtml+xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9"
+        });
+
+        async function fromResponse(res) {
+            if (!res || !res.ok) throw new Error("bad");
+            return decodeMaybeGzipHtml(await res.arrayBuffer());
+        }
+
+        const attempts = [];
+
+        attempts.push(async () => fromResponse(await fetch(url, { headers: hdrs })));
+
+        attempts.push(async () => {
+            const u = `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`;
+            return fromResponse(await fetch(u));
+        });
+
+        attempts.push(async () => {
+            const u = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+            const r = await fetch(u);
+            const j = await r.json();
+            if (!j || typeof j.contents !== "string" || j.contents.length < 200) throw new Error("allorigins");
+            return j.contents;
+        });
+
+        attempts.push(async () => {
+            const u = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+            return fromResponse(await fetch(u));
+        });
+
+        for (const fn of attempts) {
+            try {
+                const txt = await fn();
+                if (
+                    txt
+                    && txt.length > 400
+                    && (/<\s*html/i.test(txt) || /<table/i.test(txt) || /<tr/i.test(txt))
+                ) return txt;
+            } catch (_) { /* 다음 수단 시도 */ }
+        }
+        return "";
+    }
+
+    function parsePHIVOLCSBulletinHtml(htmlText) {
+        const doc = new DOMParser().parseFromString(htmlText, "text/html");
+        const rows = doc.querySelectorAll("tr");
+        const items = [];
+        rows.forEach((tr) => {
+            const a =
+                tr.querySelector('a[href*="Earthquake_Information"], a[href*="earthquake_information"]')
+                || tr.querySelector('a[href*="EQLatest"], a[href*="_Earthquake"]');
+            if (!a || !a.getAttribute("href")) return;
+
+            let timeTxt = "";
+            const span = a.querySelector("span");
+            timeTxt = ((span ? span.textContent : a.textContent) || "").replace(/\s+/g, " ").trim();
+            const tds = tr.querySelectorAll("td");
+            if (tds.length < 6) return;
+
+            const href = (a.getAttribute("href") || "").replace(/\\/g, "/");
+
+            const lat = parseFloat(tds[1].textContent.replace(/[^\d.\-]/g, "").trim());
+            const lng = parseFloat(tds[2].textContent.replace(/[^\d.\-]/g, "").trim());
+            if (Number.isNaN(lat) || Number.isNaN(lng)) return;
+
+            const depthStr = tds[3].textContent.trim();
+            const magStr = tds[4].textContent.trim();
+            const loc = tds[5].textContent.replace(/\s+/g, " ").trim();
+            const depthM = depthStr.match(/\d+/);
+            const magM = magStr.match(/-?\d+\.?\d*/);
+
+            const time = parsePHIVOLCSDisplayTimePhST(timeTxt);
+            if (!time || Number.isNaN(time.getTime())) return;
+
+            const idSlug = (href.split("/").pop() || "x").replace(".html", "");
+            items.push({
+                id: "PHIVOLCS_" + idSlug,
+                source: "PHIVOLCS",
+                place: translateRegion(loc),
+                time,
+                lat,
+                lng,
+                mag: magM ? parseFloat(magM[0]) : 0,
+                depth: depthM ? parseFloat(depthM[0]) : 0,
+                rawIntensity: null
+            });
+        });
+        return items;
+    }
+
+    async function fetchPHIVOLCS() {
+        const bulletinDefault = "https://earthquake.phivolcs.dost.gov.ph/";
+        const wpEarthquakePage = "https://www.phivolcs.dost.gov.ph/earthquake-information/";
+        try {
+            const grabBulletinHtml = async (url) => await fetchTextPHIVOLCSAny(url);
+
+            const parseOrEmpty = async (url) =>
+                parsePHIVOLCSBulletinHtml(await grabBulletinHtml(url));
+
+            let rows = await parseOrEmpty(bulletinDefault);
+            if (rows.length) return rows;
+
+            const wpHtml = await grabBulletinHtml(wpEarthquakePage);
+            if (wpHtml) {
+                const iframeUrl = extractIframeEarthquakeUrlFromWP(wpHtml);
+                if (
+                    iframeUrl
+                    && iframeUrl.includes("earthquake.phivolcs")
+                    && iframeUrl.replace(/\/$/, "") !== bulletinDefault.replace(/\/$/, "")
+                )
+                    rows = parsePHIVOLCSBulletinHtml(await grabBulletinHtml(iframeUrl));
+                if (!rows.length) rows = parsePHIVOLCSBulletinHtml(wpHtml);
+            }
+
+            if (!rows.length) rows = await parseOrEmpty(bulletinDefault);
+            return rows;
+        } catch {
+            return [];
+        }
     }
 
     async function fetchBGS() {

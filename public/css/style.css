@@ -114,6 +114,7 @@
         .src-gfz { color: #dfe6e9; background: rgba(223, 230, 233, 0.15); }
         .src-ga { color: #74b9ff; background: rgba(116, 185, 255, 0.15); }
         .src-bgs { color: #a29bfe; background: rgba(162, 155, 254, 0.15); }
+        .src-phivolcs { color: #79d86c; background: rgba(141, 247, 127, 0.18); }
         .src-주의 { color: #ff5d5d; background: rgba(255, 93, 93, 0.15); }
         
         .eq-place { font-weight: bold; font-size: 1rem; color: #fff; word-break: keep-all; line-height: 1.4; flex-grow: 1; margin-right: 10px;}

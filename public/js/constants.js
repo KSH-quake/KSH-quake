@@ -21,7 +21,8 @@
         geonet: { center: [-41.0, 174.0], zoom: 5 },
         gfz: { center: [51.0, 10.0], zoom: 4 },
         ga: { center: [-25.0, 134.0], zoom: 4 },
-        bgs: { center: [54.5, -3.0], zoom: 5 }
+        bgs: { center: [54.5, -3.0], zoom: 5 },
+        phivolcs: { center: [12.2, 121.8], zoom: 6 }
     };
 
     const prefCoords = {

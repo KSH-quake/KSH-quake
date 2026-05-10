@@ -17,6 +17,15 @@
         koText = koText.replace(/(\d+(?:\.\d+)?) km ([A-Z]{1,3}) of (.*)/i, (match, dist, dir, place) => {
             const koDir = dirMap[dir.toUpperCase()] || dir; return `${place} 기준 ${koDir} ${dist}km 해역/지점`;
         });
+
+        koText = koText.replace(
+            /^(\d+(?:\.\d+)?)\s*km\s+([NS])\s+(\d+)\s*°\s*([EW])\s+of\s+(.+)/i,
+            (_, dist, latHemi, bearingDeg, lonHemi, place) => {
+                const ns = latHemi.toUpperCase() === "N" ? "북" : "남";
+                const ew = lonHemi.toUpperCase() === "E" ? "동" : "서";
+                return `${place.trim()} 기준 ${ns}${bearingDeg}° ${ew}쪽 ${dist}km 해역/지점`;
+            }
+        );
         
         const dictionary = {
             "south korea": "대한민국", "north korea": "북한", "taiwan region": "대만", "taiwan": "대만", "japan": "일본", 
